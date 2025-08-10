@@ -62,6 +62,8 @@ resource "aws_lambda_function" "file_processor" {
       DYNAMODB_TABLE_NAME = aws_dynamodb_table.file_tracking.name
       UPLOAD_BUCKET_NAME  = aws_s3_bucket.uploads.bucket
       MALWARE_BUCKET_NAME = aws_s3_bucket.malware.bucket
+      SES_RECIPIENT_EMAIL = var.SES_RECIPIENT_EMAIL
+      SES_SENDER_EMAIL    = var.SES_SENDER_EMAIL
     }
   }
 
@@ -102,7 +104,7 @@ resource "aws_lambda_permission" "s3_file_processor" {
 # CloudWatch log group for Presign URL Lambda
 resource "aws_cloudwatch_log_group" "presign_url" {
   count = var.enable_cloudwatch_logs ? 1 : 0
-  
+
   name              = "/aws/lambda/${aws_lambda_function.presign_url.function_name}"
   retention_in_days = var.log_retention_days
 
@@ -114,7 +116,7 @@ resource "aws_cloudwatch_log_group" "presign_url" {
 # CloudWatch log group for File Processor Lambda
 resource "aws_cloudwatch_log_group" "file_processor" {
   count = var.enable_cloudwatch_logs ? 1 : 0
-  
+
   name              = "/aws/lambda/${aws_lambda_function.file_processor.function_name}"
   retention_in_days = var.log_retention_days
 

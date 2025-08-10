@@ -30,7 +30,7 @@ variable "environment" {
 variable "s3_bucket_name" {
   description = "Name of the main S3 bucket for file uploads"
   type        = string
-  default     = "file-upload-bucket"
+  default     = "file-upload-bucket-122333"
   validation {
     condition     = can(regex("^[a-z0-9][a-z0-9.-]*[a-z0-9]$", var.s3_bucket_name))
     error_message = "S3 bucket name must be valid (lowercase, numbers, hyphens, dots)."
@@ -120,4 +120,19 @@ variable "log_retention_days" {
     condition     = var.log_retention_days >= 1 && var.log_retention_days <= 3653
     error_message = "Log retention must be between 1 and 3653 days."
   }
+}
+
+# Monitoring Configuration
+variable "SES_RECIPIENT_EMAIL" {
+  description = "Receipt mail when the malicious file moved"
+  type        = string
+  default     = "rameshkumar2217@gmail.com"
+}
+
+
+# Monitoring Configuration
+variable "SES_SENDER_EMAIL" {
+  description = "Receipt mail when the malicious file moved"
+  type        = string
+  default     = "rameshkumar.pm@outlook.com"
 }

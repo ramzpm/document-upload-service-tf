@@ -29,7 +29,6 @@ def lambda_handler(event, context):
         table_name = os.environ['DYNAMODB_TABLE_NAME']
         upload_bucket = os.environ['UPLOAD_BUCKET_NAME']
         malware_bucket = os.environ['MALWARE_BUCKET_NAME']
-        
         table = dynamodb.Table(table_name)
         
         # Process S3 event
@@ -203,18 +202,35 @@ def move_to_malware_bucket(s3_client, source_bucket, source_key, file_id, table,
             Key=source_key
         )
         
-        # Update DynamoDB with new bucket location
+         # Update DynamoDB with new bucket location
         table.update_item(
             Key={'fileId': file_id},
-            UpdateExpression='SET bucket = :bucket, uploadedStatus = :status, updatedTimestamp = :timestamp',
+            UpdateExpression='SET #bucketName = :bucket, uploadedStatus = :status, updatedTimestamp = :timestamp',
+            ExpressionAttributeNames={
+                '#bucketName': 'bucket'
+            },
             ExpressionAttributeValues={
                 ':bucket': malware_bucket,
-                ':uploadedStatus': 'MOVED_TO_MALWARE_BUCKET',
+                ':status': 'MOVED_TO_MALWARE_BUCKET',
                 ':timestamp': datetime.utcnow().isoformat()
             }
         )
         
         print(f"Successfully moved {source_key} to malware bucket")
+
+        # Send SES notification email
+        send_ses_email(
+            recipient=os.environ['SES_RECIPIENT_EMAIL'],  # Set in Lambda ENV
+            subject="⚠️ Malware File Detected & Moved",
+            body_text=(
+                f"A potentially malicious file has been detected and moved.\n\n"
+                f"File ID: {file_id}\n"
+                f"File Name: {source_key}\n"
+                f"Original Bucket: {source_bucket}\n"
+                f"Malware Bucket: {malware_bucket}\n"
+                f"Time: {datetime.utcnow().isoformat()}\n"
+            )
+        )
         
     except Exception as e:
         print(f"Error moving object to malware bucket: {str(e)}")
@@ -243,3 +259,39 @@ def create_error_response(status_code, message):
             'timestamp': datetime.utcnow().isoformat()
         }, indent=2)
     } 
+
+
+def send_ses_email(recipient, subject, body_text, body_html=None):
+    """
+    Send email using Amazon SES.
+    """
+    ses_client = boto3.client('ses')
+    CHARSET = "UTF-8"
+
+    try:
+        # SendMail request
+        response = ses_client.send_email(
+            Source=os.environ['SES_SENDER_EMAIL'],  # Verified SES sender
+            Destination={
+                'ToAddresses': [recipient]
+            },
+            Message={
+                'Subject': {
+                    'Data': subject,
+                    'Charset': CHARSET
+                },
+                'Body': {
+                    'Text': {
+                        'Data': body_text,
+                        'Charset': CHARSET
+                    },
+                    'Html': {
+                        'Data': body_html or f"<pre>{body_text}</pre>",
+                        'Charset': CHARSET
+                    }
+                }
+            }
+        )
+        print(f"Email sent! Message ID: {response['MessageId']}")
+    except Exception as e:
+        print(f"Error sending email via SES: {str(e)}")

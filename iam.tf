@@ -160,3 +160,24 @@ resource "aws_iam_role_policy" "file_processor_dynamodb_access" {
     ]
   })
 }
+
+
+# IAM policy for Lambda to send emails using SES
+resource "aws_iam_role_policy" "file_processor_ses_access" {
+  name = "${local.name_prefix}-file-processor-ses-access"
+  role = aws_iam_role.file_processor_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ses:SendEmail",
+          "ses:SendRawEmail"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}

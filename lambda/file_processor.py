@@ -38,10 +38,12 @@ def lambda_handler(event, context):
             s3_key = record['s3']['object']['key']
             s3_size = record['s3']['object']['size']
             s3_event_time = record['eventTime']
-            
+
             # Generate unique fileId
-            file_id = str(uuid.uuid4())
+            file_id = s3_key.split('/')[1].split('_')[0]
             
+            print(f"Successfully extracted file record: {file_id}")
+
             # Determine file type from extension
             file_extension = os.path.splitext(s3_key)[1].lower()
             file_type = file_extension if file_extension else 'unknown'

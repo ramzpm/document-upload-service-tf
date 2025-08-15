@@ -25,6 +25,8 @@ locals {
   lambda_functions = {
     presign_url    = "${local.name_prefix}-presign-url"
     file_processor = "${local.name_prefix}-file-processor"
+    file_fetcher   = "${local.name_prefix}-file_fetcher"
+
   }
 
   # S3 bucket names

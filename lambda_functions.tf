@@ -20,6 +20,13 @@ data "archive_file" "file_processor_lambda" {
   output_path = "${path.module}/lambda/file_processor.zip"
 }
 
+# Package File Processor Lambda function code
+data "archive_file" "file_fetcher_lambda" {
+  type        = "zip"
+  source_file = "${path.module}/lambda/file_fetcher.py"
+  output_path = "${path.module}/lambda/file_fetcher.zip"
+}
+
 # =============================================================================
 # LAMBDA FUNCTION DEFINITIONS
 # =============================================================================
@@ -64,6 +71,7 @@ resource "aws_lambda_function" "file_processor" {
       MALWARE_BUCKET_NAME = aws_s3_bucket.malware.bucket
       SES_RECIPIENT_EMAIL = var.SES_RECIPIENT_EMAIL
       SES_SENDER_EMAIL    = var.SES_SENDER_EMAIL
+      REGION              = var.aws_region
     }
   }
 
@@ -71,6 +79,30 @@ resource "aws_lambda_function" "file_processor" {
     Name = "file-processor-lambda"
   })
 }
+
+
+# File Fetcher Lambda function
+resource "aws_lambda_function" "file_fetcher" {
+  function_name = local.lambda_functions.file_fetcher
+  role          = aws_iam_role.file_fetcher_lambda.arn
+  handler       = "file_fetcher.lambda_handler"
+  runtime       = var.lambda_runtime
+  filename      = data.archive_file.file_fetcher_lambda.output_path
+  timeout       = var.lambda_timeout
+  memory_size   = var.lambda_memory_size
+
+  environment {
+    variables = {
+      DYNAMODB_TABLE_NAME = aws_dynamodb_table.file_tracking.name
+      REGION              = var.aws_region
+    }
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "file-fetcher-lambda"
+  })
+}
+
 
 # =============================================================================
 # S3 TRIGGER CONFIGURATION
@@ -123,4 +155,16 @@ resource "aws_cloudwatch_log_group" "file_processor" {
   tags = merge(local.common_tags, {
     Name = "file-processor-logs"
   })
-} 
+}
+
+# CloudWatch log group for File Fetcher Lambda
+resource "aws_cloudwatch_log_group" "file_fetcher" {
+  count = var.enable_cloudwatch_logs ? 1 : 0
+
+  name              = "/aws/lambda/${aws_lambda_function.file_fetcher.function_name}"
+  retention_in_days = var.log_retention_days
+
+  tags = merge(local.common_tags, {
+    Name = "file-fetcher-logs"
+  })
+}

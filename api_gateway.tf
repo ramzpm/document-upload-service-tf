@@ -26,6 +26,15 @@ resource "aws_apigatewayv2_integration" "presign_url" {
   payload_format_version = "2.0"
 }
 
+# Lambda integration for File Upload GET by fileId endpoint
+resource "aws_apigatewayv2_integration" "file_fetcher" {
+  api_id                 = aws_apigatewayv2_api.file_upload_api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.file_fetcher.invoke_arn
+  payload_format_version = "2.0"
+}
+
+
 # =============================================================================
 # API ROUTES
 # =============================================================================
@@ -35,6 +44,14 @@ resource "aws_apigatewayv2_route" "presign_url" {
   api_id    = aws_apigatewayv2_api.file_upload_api.id
   route_key = "GET /presign"
   target    = "integrations/${aws_apigatewayv2_integration.presign_url.id}"
+}
+
+
+# Route for fetching file upload info by fileId
+resource "aws_apigatewayv2_route" "file_fetcher" {
+  api_id    = aws_apigatewayv2_api.file_upload_api.id
+  route_key = "GET /file-upload/{fileId}"
+  target    = "integrations/${aws_apigatewayv2_integration.file_fetcher.id}"
 }
 
 # =============================================================================
@@ -65,18 +82,13 @@ resource "aws_lambda_permission" "api_presign_url" {
   source_arn    = "${aws_apigatewayv2_api.file_upload_api.execution_arn}/*/*"
 }
 
-# =============================================================================
-# API GATEWAY ACCESS LOGS (Optional)
-# =============================================================================
 
-# CloudWatch log group for API Gateway access logs
-resource "aws_cloudwatch_log_group" "api_gateway" {
-  count = var.enable_cloudwatch_logs ? 1 : 0
 
-  name              = "/aws/apigateway/${aws_apigatewayv2_api.file_upload_api.name}"
-  retention_in_days = var.log_retention_days
-
-  tags = merge(local.common_tags, {
-    Name = "api-gateway-logs"
-  })
-} 
+# Lambda permission for API Gateway to invoke file upload GET function
+resource "aws_lambda_permission" "api_file_fetcher" {
+  statement_id  = "AllowExecutionFromAPIGatewayFileUploadGet"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.file_fetcher.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.file_upload_api.execution_arn}/*/*"
+}

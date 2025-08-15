@@ -46,6 +46,26 @@ resource "aws_iam_role" "file_processor_lambda" {
   })
 }
 
+
+# IAM Role for File Fetcher Lambda
+resource "aws_iam_role" "file_fetcher_lambda" {
+  name = "${local.name_prefix}-file-fetcher-lambda-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "lambda.amazonaws.com"
+      }
+    }]
+  })
+
+  tags = merge(local.common_tags, {
+    Name = "file-fetcher-lambda-role"
+  })
+}
 # =============================================================================
 # BASIC EXECUTION POLICIES
 # =============================================================================
@@ -59,6 +79,12 @@ resource "aws_iam_role_policy_attachment" "presign_lambda_basic" {
 # Basic execution role for File Processor Lambda
 resource "aws_iam_role_policy_attachment" "file_processor_lambda_basic" {
   role       = aws_iam_role.file_processor_lambda.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+# Basic execution role for File Fetcher Lambda
+resource "aws_iam_role_policy_attachment" "file_fetcher_lambda_basic" {
+  role       = aws_iam_role.file_fetcher_lambda.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
@@ -149,6 +175,31 @@ resource "aws_iam_role_policy" "file_processor_dynamodb_access" {
           "dynamodb:GetItem",
           "dynamodb:UpdateItem",
           "dynamodb:DeleteItem",
+          "dynamodb:Query",
+          "dynamodb:Scan"
+        ]
+        Resource = [
+          aws_dynamodb_table.file_tracking.arn,
+          "${aws_dynamodb_table.file_tracking.arn}/index/*"
+        ]
+      }
+    ]
+  })
+}
+
+
+# DynamoDB access policy for File Processor Lambda
+resource "aws_iam_role_policy" "file_fetcher_dynamodb_access" {
+  name = "${local.name_prefix}-file_fetcher_dynamodb_access"
+  role = aws_iam_role.file_fetcher_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
           "dynamodb:Query",
           "dynamodb:Scan"
         ]

@@ -8,6 +8,15 @@ resource "aws_apigatewayv2_api" "file_upload_api" {
   protocol_type = "HTTP"
   description   = "API Gateway for secure file upload system"
 
+  # Enable CORS
+  cors_configuration {
+    allow_headers  = ["content-type", "x-amz-meta-custom", "authorization"]
+    allow_methods  = ["GET", "PUT", "OPTIONS"]
+    allow_origins  = ["*"] # you can restrict to specific domain instead of "*"
+    expose_headers = ["content-type", "x-amz-meta-custom"]
+    max_age        = 3600
+  }
+
   tags = merge(local.common_tags, {
     Name = "file-upload-api"
   })
@@ -63,6 +72,7 @@ resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.file_upload_api.id
   name        = "$default"
   auto_deploy = true
+
 
   tags = merge(local.common_tags, {
     Name = "api-default-stage"

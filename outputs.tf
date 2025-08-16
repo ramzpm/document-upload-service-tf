@@ -115,3 +115,11 @@ output "system_version" {
   description = "Version of the file security system"
   value       = "1.0.0"
 }
+
+
+
+# =============================================================================
+# Front end INFORMATION OUTPUTS
+# =============================================================================
+
+

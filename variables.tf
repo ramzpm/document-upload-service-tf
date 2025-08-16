@@ -136,3 +136,12 @@ variable "SES_SENDER_EMAIL" {
   type        = string
   default     = "rameshkumar.pm@outlook.com"
 }
+
+
+# Amplify Configuration
+variable "access_token" {
+  description = "GitHub Personal Access Token with repo access"
+  type        = string
+  sensitive   = true
+  default     = ""
+}

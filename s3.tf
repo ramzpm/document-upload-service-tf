@@ -89,3 +89,18 @@ resource "aws_s3_bucket_public_access_block" "malware" {
   ignore_public_acls      = true
   restrict_public_buckets = true
 }
+
+
+resource "aws_s3_bucket_cors_configuration" "file_upload_cors" {
+  bucket = aws_s3_bucket.uploads.id
+  cors_rule {
+    id = "CORSRule1"
+
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "PUT"]
+    allowed_origins = ["*"] # 👈 You can restrict this later to your Amplify domain
+    expose_headers  = ["ETag"]
+
+    max_age_seconds = 3000
+  }
+}

@@ -232,3 +232,4 @@ resource "aws_iam_role_policy" "file_processor_ses_access" {
     ]
   })
 }
+
